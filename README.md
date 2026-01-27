@@ -8,6 +8,7 @@ Create and use a virtual environment in all terminals
 
 
 `source venv/bin/activate`
+
 `pip install -r requirements.txt`
 
 
