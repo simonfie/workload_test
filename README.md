@@ -5,6 +5,8 @@ A simple celery workload testing code
 Create and use a virtual environment in all terminals
 
 `python -m venv venv`
+
+
 `source venv/bin/activate`
 `pip install -r requirements.txt`
 
