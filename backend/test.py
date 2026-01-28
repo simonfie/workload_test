@@ -10,6 +10,8 @@ from core.tasks import task_a, task_b, task_c
 import uuid
 from datetime import datetime
 
+
+# tested celery stamping for possible monitoring
 class InGroupVisitor(StampingVisitor):
     def __init__(self, total_tasks):
         self.workflow_id = str(uuid.uuid4())
@@ -27,17 +29,18 @@ class InGroupVisitor(StampingVisitor):
             "workflow_total": self.total_tasks
         }
 
+# to test different workers on different tasks
 external_signature = signature(
         "external.tasks.final_task",
         queue="external"
     )
 
+# testing of different workflows
 workflow_chord = chord([task_a.s(),task_b.s(),task_c.s()],
     external_signature
 )
 
 # workflow_group_chain = chain(group(task_a.si(), task_b.si(), task_c.si()), external_signature)
-
 workflow_link = group(task_a.s())
 
 
@@ -48,11 +51,6 @@ if __name__ == "__main__":
             start = datetime.now()
             for _ in range(N):
                 task_a.delay()
-
-            current_time = start.strftime("%H:%M:%S")
-            print("Current Time =", current_time)
-
-
 
             # print("Creating graph...")
             # with open('graph.dot', 'w') as fh:
