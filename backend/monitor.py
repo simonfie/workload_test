@@ -18,7 +18,6 @@ completed = set()
 task_names = {}       
 
 def handle_sent(event):
-    """Triggered when a task is sent to the broker"""
     uuid = event['uuid']
     name = event.get('name', 'UNKNOWN')
     task_names[uuid] = name
@@ -31,9 +30,9 @@ def handle_sent(event):
     print(f"TASK SENT: {name} [{uuid}] --- WF_ID {workflow_id} TOTAL TASKS: {total}")
 
 def handle_succeeded(event):
-    """Triggered when a task succeeds"""
     uuid = event['uuid']
     name = task_names.get(uuid, 'UNKNOWN')
+    # a simple progress bar for tasks
     if name in tasks_to_monitor:
         completed.add(uuid)
         print(f"TASK SUCCEEDED: {name} [{uuid}]")
