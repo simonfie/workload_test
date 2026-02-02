@@ -20,14 +20,12 @@ task_names = {}
 def handle_sent(event):
     uuid = event['uuid']
     name = event.get('name', 'UNKNOWN')
+    root_id = event.get('root_id', 'UNKNOWN')
+    parent_id = event.get('parent_id', 'UNKNOWN')
     task_names[uuid] = name
 
-    headers = event.get("workflow_id", {})
-    print(f"event: {event}")
-    workflow_id = headers.get("workflow_id")
-    total = headers.get("workflow_total")
 
-    print(f"TASK SENT: {name} [{uuid}] --- WF_ID {workflow_id} TOTAL TASKS: {total}")
+    print(f"TASK SENT: {name} [{uuid}] --- ROOT_ID {root_id} PARENT_ID: {parent_id}")
 
 def handle_succeeded(event):
     uuid = event['uuid']
@@ -42,8 +40,10 @@ def handle_succeeded(event):
 def handle_received(event):
     uuid = event['uuid']
     name = task_names.get(uuid, 'UNKNOWN')
-    print(event)
-    print(f"TASK RECEIVED: {name} [{uuid}]")
+    root_id = event.get('root_id', 'UNKNOWN')
+    parent_id = event.get('parent_id', 'UNKNOWN')
+    # print(event)
+    print(f"TASK RECEIVED: {name} [{uuid}] --- ROOT_ID {root_id} PARENT_ID: {parent_id}")
 
 if __name__ == "__main__":
     print("Starting Celery task monitor...")

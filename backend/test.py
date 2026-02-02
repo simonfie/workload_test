@@ -1,5 +1,6 @@
 import os
 import django
+import redis
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
 django.setup()
@@ -43,16 +44,21 @@ external_signature = signature(
 # workflow_group_chain = chain(group(task_a.si(), task_b.si(), task_c.si()), external_signature)
 # workflow_link = group(task_a.s())
 
-group1 = group(first_group_task1.si(), first_group_task2.si(), first_group_task3.si())
-group2 = group(second_group_task1.si(), second_group_task2.si(), second_group_task3.si())
-group3 = group(third_group_task1.si(), third_group_task2.si(), third_group_task3.si())
-group4 = group(fourth_group_task1.si(), fourth_group_task2.si(), fourth_group_task3.si())
-group5 = group(fifth_group_task1.si(), fifth_group_task2.si(), fifth_group_task3.si())
+job_id = 10
 
-chain1 = chain(first_chain_task1.si(), first_chain_task2.si(), first_chain_task3.si(), first_chain_task4.si())
-chain2 = chain(standalone_task1.si(), standalone_task2.si(), standalone_task3.si(), standalone_task4.si())
+group1 = group(first_group_task1.si(job_id), first_group_task2.si(job_id), first_group_task3.si(job_id))
+group2 = group(second_group_task1.si(job_id), second_group_task2.si(job_id), second_group_task3.si(job_id))
+group3 = group(third_group_task1.si(job_id), third_group_task2.si(job_id), third_group_task3.si(job_id))
+group4 = group(fourth_group_task1.si(job_id), fourth_group_task2.si(job_id), fourth_group_task3.si(job_id))
+group5 = group(fifth_group_task1.si(job_id), fifth_group_task2.si(job_id), fifth_group_task3.si(job_id))
+
+chain1 = chain(first_chain_task1.si(job_id), first_chain_task2.si(job_id), first_chain_task3.si(job_id), first_chain_task4.si(job_id))
+chain2 = chain(standalone_task1.si(job_id), standalone_task2.si(job_id), standalone_task3.si(job_id), standalone_task4.si(job_id))
 
 complex_workflow = chord(group(chord(group1, group2),chord(group3, chain1)), group(group4, chain2, group5))
+
+
+r = redis.Redis(decode_responses=True)
 
 
 if __name__ == "__main__":
@@ -63,6 +69,17 @@ if __name__ == "__main__":
             # for _ in range(N):
             #     task_a.delay()
 
+            # job_id = uuid.uuid4().hex
+
+            # simple id for testing monitoring without API calls
+            
+
+            r.hset(f"job:{job_id}", mapping={
+                 "total_tasks": 23,
+                 "completed_tasks": 0
+            })
+
+            # 
             result = complex_workflow.apply_async()
 
 
