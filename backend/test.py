@@ -55,7 +55,11 @@ group5 = group(fifth_group_task1.si(job_id), fifth_group_task2.si(job_id), fifth
 chain1 = chain(first_chain_task1.si(job_id), first_chain_task2.si(job_id), first_chain_task3.si(job_id), first_chain_task4.si(job_id))
 chain2 = chain(standalone_task1.si(job_id), standalone_task2.si(job_id), standalone_task3.si(job_id), standalone_task4.si(job_id))
 
-complex_workflow = chord(group(chord(group1, group2),chord(group3, chain1)), group(group4, chain2, group5))
+
+# the synchronization only works correctly, if the callback of the chord is a group, which is shy the chain is wrappen in group
+# couldn't find an explanation yet
+complex_workflow = chord(group(chord(group1, group2),chord(group3, group(chain1))), group(group4, chain2, group5))
+# complex_workflow = chord(group(chain(group1, group2),chain(group3, chain1)), group(group4, chain2, group5))
 
 
 r = redis.Redis(decode_responses=True)
