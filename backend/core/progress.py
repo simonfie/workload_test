@@ -1,68 +1,86 @@
-import time
-import redis
 import os
+import django
+import sys
+import time
 
-redis_app = redis.Redis(
-    host="localhost",
-    port=6379,
-    decode_responses=True
-)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BASE_DIR)
 
-def task_key(job_id, task_id):
-    return f"job:{job_id}:task:{task_id}"
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
+django.setup()
 
-def register_task(job_id, task_id, name, steps_total=1):
-    redis_app.sadd(f"job:{job_id}:tasks", task_id)
-    redis_app.hset(task_key(job_id, task_id), mapping={
-        "task":name,
-        "state": "PENDING",
-        "step": 0,
-        "steps_total": steps_total,
-        "message": "",
-        "updated_at": time.time(),
-    })
+from celery.result import AsyncResult
+# from celery_app import app
+from core.models import JobTask
 
-def update_task(job_id, task_id, **fields):
-    fields["updated_at"] = time.time()
-    redis_app.hset(task_key(job_id, task_id), mapping=fields)
 
-def finish_task(job_id, task_id):
-    update_task(job_id, task_id, state="SUCCESS")
-    redis_app.hincrby(f"job:{job_id}", "completed_tasks", 1)
 
 
 def get_progress(job_id):
-    tasks_ids = redis_app.smembers(f"job:{job_id}:tasks")
+    job_tasks = JobTask.objects.filter(job_id=job_id)
 
-    running = []
+    if not job_tasks.exists():
+        return {
+            "job_id": job_id,
+            "completed": 0,
+            "total": 0,
+            "percent": 0,
+            "tasks": [],
+        }
+
     completed = 0
+    tasks_progress = []
+    total_tasks = 0
 
-    for tid in tasks_ids:
-        task = redis_app.hgetall(task_key(job_id, tid))
-        if task["state"] == "RUNNING":
-            running.append(task)
-        if task["state"] == "SUCCESS":
+
+    for task in job_tasks:
+        result = AsyncResult(task.task_id)
+
+        task_state = result.state
+        if task_state in ["SUCCESS", "FAILURE"]:
             completed += 1
-    try:
-        total = int(redis_app.hget(f"job:{job_id}", "total_tasks"))
-    except TypeError as e:
-        print(f"job_id: {job_id} is not currently running, run test")
-        return
+
+        total_tasks = task.total
+
+        if task_state == "RUNNING" and isinstance(result.info, dict):
+            current_step = result.info.get("step")
+            total_steps = result.info.get("steps_total")
+            msg = result.info.get("message")
+        else:
+            current_step = total_steps = msg = None
+
+
+        tasks_progress.append({
+            "task_name": task.name,
+            "state": task_state,
+            "current_step": current_step,
+            "total_steps": total_steps,
+            "msg": msg
+        })
+
+    percent_done = int(completed / total_tasks * 100) if total_tasks else 0
 
     return {
-        "progress": completed / total if total else 0,
-        "running_tasks": running, 
-        "completed_tasks": completed,
-        "total_tasks": total,
+        "job_id": job_id,
+        "completed": completed,
+        "total": total_tasks,
+        "percent": percent_done,
+        "tasks": tasks_progress,
     }
 
 if __name__ == "__main__":
-    print("Starting task progress monitor...")
-
+    job_id = sys.argv[1]
+    print("Starting progress tracking...")
     while(True):
+        progress = get_progress(job_id)
+        print(f"{progress['completed']}/{progress['total']} tasks done ({progress['percent']}%)")
+        for t in progress["tasks"]:
+            print(f" - {t['task_name']}: {t['state']} {t['current_step']}/{t['total_steps']} -- {t['msg']}")
+
+        if progress["completed"] >= progress["total"]:
+            if progress["total"] == 0:
+                print("job not found")
+                continue
+            print("Job finished!")
+            break
         time.sleep(1)
-
-        print(get_progress(10))
-
-
-

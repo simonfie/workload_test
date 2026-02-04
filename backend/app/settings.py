@@ -45,7 +45,9 @@ CELERY_BROKER_URL = "amqp://guest:guest@localhost:5672//"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 
-CELERY_RESULT_BACKEND = "redis://localhost:6379/1"
+# CELERY_RESULT_BACKEND = "redis://localhost:6379/1"
+CELERY_RESULT_BACKEND = "db+postgresql://postgres:postgres@localhost:5432/celery_results"
+# CELERY_RESULT_BACKEND = "rpc://"
 
 CELERY_TASK_SEND_SENT_EVENT = True
 

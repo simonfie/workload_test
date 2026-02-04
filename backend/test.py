@@ -1,6 +1,7 @@
 import os
 import django
 import redis
+import sys
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
 django.setup()
@@ -10,6 +11,7 @@ from celery.canvas import StampingVisitor
 from core.tasks import first_group_task1, first_group_task2, first_group_task3, second_group_task1, second_group_task2, second_group_task3, third_group_task1, third_group_task2, third_group_task3, fourth_group_task1, fourth_group_task2, fourth_group_task3, fifth_group_task1, fifth_group_task2, fifth_group_task3, first_chain_task1, first_chain_task2, first_chain_task3, first_chain_task4, standalone_task1, standalone_task2, standalone_task3, standalone_task4
 import uuid
 from datetime import datetime
+from core.models import JobTask
 
 
 # tested celery stamping for possible monitoring
@@ -44,7 +46,7 @@ external_signature = signature(
 # workflow_group_chain = chain(group(task_a.si(), task_b.si(), task_c.si()), external_signature)
 # workflow_link = group(task_a.s())
 
-job_id = 10
+job_id = sys.argv[1]
 
 group1 = group(first_group_task1.si(job_id), first_group_task2.si(job_id), first_group_task3.si(job_id))
 group2 = group(second_group_task1.si(job_id), second_group_task2.si(job_id), second_group_task3.si(job_id))
@@ -67,23 +69,7 @@ r = redis.Redis(decode_responses=True)
 
 if __name__ == "__main__":
         try:
-            # N = 10000
-            # print("Running logging test...")
-            # start = datetime.now()
-            # for _ in range(N):
-            #     task_a.delay()
 
-            # job_id = uuid.uuid4().hex
-
-            # simple id for testing monitoring without API calls
-            
-
-            r.hset(f"job:{job_id}", mapping={
-                 "total_tasks": 23,
-                 "completed_tasks": 0
-            })
-
-            # 
             result = complex_workflow.apply_async()
 
 

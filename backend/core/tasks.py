@@ -1,338 +1,338 @@
 from celery import shared_task
+from celery.signals import task_prerun
 import time
 import logging
-from .progress import register_task, update_task, finish_task
-
+from core.models import JobTask
 
 logger = logging.getLogger(__name__)
+
+
+@task_prerun.connect
+def create_job_task(sender=None, task_id=None, task=None, args=None, kwargs=None, **extra):
+    """
+    Automatically create JobTask when a Celery task starts.
+    Includes the total steps if provided.
+    """
+    # extract job_id
+    job_id = kwargs.get("job_id") or (args[0] if args else None)
+    if not job_id:
+        return
+
+
+    # create JobTask if it doesn't exist
+    JobTask.objects.get_or_create(
+        task_id=task_id,
+        defaults={
+            "job_id": job_id,
+            "name": sender.name.split(".")[-1],  # short task name
+            "state": "PENDING",
+            "current": 0,
+            "total": 23,
+        }
+    )
+
 
 ''''first group'''
 @shared_task(bind=True)
 def first_group_task1(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name, steps_total=3)
-
-    logger.info(f"TASK first_group_task1 EXECUTED job_id: {job_id}")
-
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Preparing")
-    time.sleep(1)
-
-    update_task(job_id, task_id, state="RUNNING", step=2, message="Running")
-    time.sleep(1)
-
-    update_task(job_id, task_id, state="RUNNING", step=3, message="Finalizing")
-    time.sleep(1)
-
-    finish_task(job_id, task_id)
-    return "first_group_task_1 done"
+    total_steps = 3
+    for step, msg in enumerate(["Preparing", "Running", "Finalizing"], start=1):
+        self.update_state(state="RUNNING", meta={
+            "job_id": job_id,
+            "step": step,
+            "steps_total": total_steps,
+            "message": msg
+        })
+        time.sleep(1)
+    return {"job_id": job_id, "status": "done", "task": "first_group_task1"}
 
 
 @shared_task(bind=True)
 def first_group_task2(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK first_group_task2 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Working")
+    self.update_state(state="RUNNING", meta={
+        "job_id": job_id,
+        "step": 1,
+        "steps_total": 1,
+        "message": "Working"
+    })
     time.sleep(5)
+    return {"job_id": job_id, "status": "done", "task": "first_group_task2"}
 
-    finish_task(job_id, task_id)
-    return "first_group_task_2 done"
 
 @shared_task(bind=True)
 def first_group_task3(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK first_group_task3 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Starting")
-    time.sleep(2)
-
-    update_task(job_id, task_id, step=2, message="Halfway done")
-    time.sleep(2)
-
-    update_task(job_id, task_id, step=3, message="Finishing")
-    time.sleep(2)
-
-    finish_task(job_id, task_id)
-    return "first_group_task_3 done"
+    total_steps = 3
+    for step, msg in enumerate(["Starting", "Halfway done", "Finishing"], start=1):
+        self.update_state(state="RUNNING", meta={
+            "job_id": job_id,
+            "step": step,
+            "steps_total": total_steps,
+            "message": msg
+        })
+        time.sleep(2)
+    return {"job_id": job_id, "status": "done", "task": "first_group_task3"}
 
 
 ''''second group'''
 @shared_task(bind=True)
 def second_group_task1(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK second_group_task1 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Processing")
+    self.update_state(state="RUNNING", meta={
+        "job_id": job_id,
+        "step": 1,
+        "steps_total": 1,
+        "message": "Processing"
+    })
     time.sleep(3)
+    return {"job_id": job_id, "status": "done", "task": "second_group_task1"}
 
-    finish_task(job_id, task_id)
-    return "second_group_task_1 done"
 
 @shared_task(bind=True)
 def second_group_task2(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name, steps_total=2)
+    total_steps = 2
+    for step, msg in enumerate(["Step 1", "Step 2"], start=1):
+        self.update_state(state="RUNNING", meta={
+            "job_id": job_id,
+            "step": step,
+            "steps_total": total_steps,
+            "message": msg
+        })
+        time.sleep(2)
+    return {"job_id": job_id, "status": "done", "task": "second_group_task2"}
 
-    logger.info("TASK second_group_task2 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Step 1")
-    time.sleep(2)
-
-    update_task(job_id, task_id, step=2, message="Step 2")
-    time.sleep(2)
-
-    finish_task(job_id, task_id)
-    return "second_group_task_2 done"
 
 @shared_task(bind=True)
 def second_group_task3(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK second_group_task3 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Running")
+    self.update_state(state="RUNNING", meta={
+        "job_id": job_id,
+        "step": 1,
+        "steps_total": 1,
+        "message": "Running"
+    })
     time.sleep(4)
-
-    finish_task(job_id, task_id)
-    return "second_group_task_3 done"
+    return {"job_id": job_id, "status": "done", "task": "second_group_task3"}
 
 
 ''''third group'''
 @shared_task(bind=True)
 def third_group_task1(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name, steps_total=3)
+    total_steps = 3
+    for step, msg in enumerate(["Step 1", "Step 2", "Step 3"], start=1):
+        self.update_state(state="RUNNING", meta={
+            "job_id": job_id,
+            "step": step,
+            "steps_total": total_steps,
+            "message": msg
+        })
+        time.sleep([1, 2, 1][step-1])
+    return {"job_id": job_id, "status": "done", "task": "third_group_task1"}
 
-    logger.info("TASK third_group_task1 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Step 1")
-    time.sleep(1)
-
-    update_task(job_id, task_id, step=2, message="Step 2")
-    time.sleep(2)
-
-    update_task(job_id, task_id, step=3, message="Step 3")
-    time.sleep(1)
-
-    finish_task(job_id, task_id)
-    return "third_group_task_1 done"
 
 @shared_task(bind=True)
 def third_group_task2(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name, steps_total=2)
+    total_steps = 2
+    for step, msg in enumerate(["Halfway", "Almost done"], start=1):
+        self.update_state(state="RUNNING", meta={
+            "job_id": job_id,
+            "step": step,
+            "steps_total": total_steps,
+            "message": msg
+        })
+        time.sleep([3, 2][step-1])
+    return {"job_id": job_id, "status": "done", "task": "third_group_task2"}
 
-    logger.info("TASK third_group_task2 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Halfway")
-    time.sleep(3)
-
-    update_task(job_id, task_id, step=2, message="Almost done")
-    time.sleep(2)
-
-    finish_task(job_id, task_id)
-    return "third_group_task_2 done"
 
 @shared_task(bind=True)
 def third_group_task3(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK third_group_task3 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Processing")
+    self.update_state(state="RUNNING", meta={
+        "job_id": job_id,
+        "step": 1,
+        "steps_total": 1,
+        "message": "Processing"
+    })
     time.sleep(2)
-
-    finish_task(job_id, task_id)
-    return "third_group_task_3 done"
+    return {"job_id": job_id, "status": "done", "task": "third_group_task3"}
 
 
 ''''fourth group'''
 @shared_task(bind=True)
 def fourth_group_task1(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name, steps_total=2)
+    total_steps = 2
+    for step, msg in enumerate(["Running", "Finishing"], start=1):
+        self.update_state(state="RUNNING", meta={
+            "job_id": job_id,
+            "step": step,
+            "steps_total": total_steps,
+            "message": msg
+        })
+        time.sleep(3)
+    return {"job_id": job_id, "status": "done", "task": "fourth_group_task1"}
 
-    logger.info("TASK fourth_group_task1 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Running")
-    time.sleep(3)
-
-    update_task(job_id, task_id, step=2, message="Finishing")
-    time.sleep(3)
-
-    finish_task(job_id, task_id)
-    return "fourth_group_task_1 done"
 
 @shared_task(bind=True)
 def fourth_group_task2(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK fourth_group_task2 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Working")
+    self.update_state(state="RUNNING", meta={
+        "job_id": job_id,
+        "step": 1,
+        "steps_total": 1,
+        "message": "Working"
+    })
     time.sleep(7)
+    return {"job_id": job_id, "status": "done", "task": "fourth_group_task2"}
 
-    finish_task(job_id, task_id)
-    return "fourth_group_task_2 done"
 
 @shared_task(bind=True)
 def fourth_group_task3(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK fourth_group_task3 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Starting")
-    time.sleep(3)
-
-    update_task(job_id, task_id, step=2, message="Ending")
-    time.sleep(3)
-
-    finish_task(job_id, task_id)
-    return "fourth_group_task_3 done"
+    total_steps = 2
+    for step, msg in enumerate(["Starting", "Ending"], start=1):
+        self.update_state(state="RUNNING", meta={
+            "job_id": job_id,
+            "step": step,
+            "steps_total": total_steps,
+            "message": msg
+        })
+        time.sleep(3)
+    return {"job_id": job_id, "status": "done", "task": "fourth_group_task3"}
 
 
 ''''fifth group'''
 @shared_task(bind=True)
 def fifth_group_task1(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK fifth_group_task1 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Processing")
+    self.update_state(state="RUNNING", meta={
+        "job_id": job_id,
+        "step": 1,
+        "steps_total": 1,
+        "message": "Processing"
+    })
     time.sleep(2)
+    return {"job_id": job_id, "status": "done", "task": "fifth_group_task1"}
 
-    finish_task(job_id, task_id)
-    return "fifth_group_task_1 done"
 
 @shared_task(bind=True)
 def fifth_group_task2(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK fifth_group_task2 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Running")
+    self.update_state(state="RUNNING", meta={
+        "job_id": job_id,
+        "step": 1,
+        "steps_total": 1,
+        "message": "Running"
+    })
     time.sleep(2)
+    return {"job_id": job_id, "status": "done", "task": "fifth_group_task2"}
 
-    finish_task(job_id, task_id)
-    return "fifth_group_task_2 done"
 
 @shared_task(bind=True)
 def fifth_group_task3(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK fifth_group_task3 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Executing")
+    total_steps = 1
+    self.update_state(state="RUNNING", meta={
+        "job_id": job_id,
+        "step": 1,
+        "steps_total": total_steps,
+        "message": "Executing"
+    })
     time.sleep(2)
-
-    finish_task(job_id, task_id)
-    return "fifth_group_task_3 done"
+    return {"job_id": job_id, "status": "done", "task": "fifth_group_task3"}
 
 
 ''''first chain'''
 @shared_task(bind=True)
 def first_chain_task1(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name, steps_total=2)
+    total_steps = 2
+    for step, msg in enumerate(["Running", "Finishing"], start=1):
+        self.update_state(state="RUNNING", meta={
+            "job_id": job_id,
+            "step": step,
+            "steps_total": total_steps,
+            "message": msg
+        })
+        time.sleep([4, 3][step-1])
+    return {"job_id": job_id, "status": "done", "task": "first_chain_task1"}
 
-    logger.info("TASK first_chain_task1 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Running")
-    time.sleep(4)
-
-    update_task(job_id, task_id, step=2, message="Finishing")
-    time.sleep(3)
-
-    finish_task(job_id, task_id)
-    return "first_chain_task_1 done"
 
 @shared_task(bind=True)
 def first_chain_task2(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK first_chain_task2 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Processing")
+    self.update_state(state="RUNNING", meta={
+        "job_id": job_id,
+        "step": 1,
+        "steps_total": 1,
+        "message": "Processing"
+    })
     time.sleep(6)
+    return {"job_id": job_id, "status": "done", "task": "first_chain_task2"}
 
-    finish_task(job_id, task_id)
-    return "first_chain_task_2 done"
 
 @shared_task(bind=True)
 def first_chain_task3(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name, steps_total=2)
+    total_steps = 2
+    for step, msg in enumerate(["Halfway", "Done"], start=1):
+        self.update_state(state="RUNNING", meta={
+            "job_id": job_id,
+            "step": step,
+            "steps_total": total_steps,
+            "message": msg
+        })
+        time.sleep([1, 1][step-1])
+    return {"job_id": job_id, "status": "done", "task": "first_chain_task3"}
 
-    logger.info("TASK first_chain_task3 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Halfway")
-    time.sleep(1)
-
-    update_task(job_id, task_id, step=2, message="Done")
-    time.sleep(1)
-
-    finish_task(job_id, task_id)
-    return "first_chain_task_3 done"
 
 @shared_task(bind=True)
 def first_chain_task4(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK first_chain_task4 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Working")
+    self.update_state(state="RUNNING", meta={
+        "job_id": job_id,
+        "step": 1,
+        "steps_total": 1,
+        "message": "Working"
+    })
     time.sleep(2)
-
-    finish_task(job_id, task_id)
-    return "first_chain_task_4 done"
+    return {"job_id": job_id, "status": "done", "task": "first_chain_task4"}
 
 
-'''standalone tasks'''
+''''standalone tasks'''
 @shared_task(bind=True)
 def standalone_task1(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK standalone_task1 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Starting")
+    self.update_state(state="RUNNING", meta={
+        "job_id": job_id,
+        "step": 1,
+        "steps_total": 1,
+        "message": "Starting"
+    })
     time.sleep(2)
+    return {"job_id": job_id, "status": "done", "task": "standalone_task1"}
 
-    finish_task(job_id, task_id)
-    return "standalone_task1 done"
 
 @shared_task(bind=True)
 def standalone_task2(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK standalone_task2 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Running")
+    self.update_state(state="RUNNING", meta={
+        "job_id": job_id,
+        "step": 1,
+        "steps_total": 1,
+        "message": "Running"
+    })
     time.sleep(2)
+    return {"job_id": job_id, "status": "done", "task": "standalone_task2"}
 
-    finish_task(job_id, task_id)
-    return "standalone_task2 done"
 
 @shared_task(bind=True)
 def standalone_task3(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
+    total_steps = 2
+    for step, msg in enumerate(["Halfway", "Almost done"], start=1):
+        self.update_state(state="RUNNING", meta={
+            "job_id": job_id,
+            "step": step,
+            "steps_total": total_steps,
+            "message": msg
+        })
+        time.sleep([1, 2][step-1])
+    return {"job_id": job_id, "status": "done", "task": "standalone_task3"}
 
-    logger.info("TASK standalone_task3 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Halfway")
-    time.sleep(1)
-    update_task(job_id, task_id, step=2, message="Almost done")
-    time.sleep(2)
-
-    finish_task(job_id, task_id)
-    return "standalone_task3 done"
 
 @shared_task(bind=True)
 def standalone_task4(self, job_id):
-    task_id = self.request.id
-    register_task(job_id, task_id, self.name)
-
-    logger.info("TASK standalone_task4 EXECUTED")
-    update_task(job_id, task_id, state="RUNNING", step=1, message="Executing")
-    time.sleep(2)
-    update_task(job_id, task_id, step=2, message="Finishing")
-    time.sleep(2)
-
-    finish_task(job_id, task_id)
-    return "standalone_task4 done"
+    total_steps = 2
+    for step, msg in enumerate(["Executing", "Finishing"], start=1):
+        self.update_state(state="RUNNING", meta={
+            "job_id": job_id,
+            "step": step,
+            "steps_total": total_steps,
+            "message": msg
+        })
+        time.sleep(2)
+    return {"job_id": job_id, "status": "done", "task": "standalone_task4"}
