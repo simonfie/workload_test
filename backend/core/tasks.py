@@ -8,7 +8,7 @@ import io
 import datetime
 import json
 from core.models import JobTask
-
+from django.utils.timezone import now
 
 minio_client = Minio(
     "localhost:9000",       
@@ -77,8 +77,7 @@ def create_job_task(sender=None, task_id=None, task=None, args=None, kwargs=None
             "job_id": job_id,
             "name": sender.name.split(".")[-1],  # short task name
             "state": "PENDING",
-            "current": 0,
-            "total": 23,
+            "total_tasks_in_job": 23,
         }
 
     )
@@ -89,25 +88,25 @@ def create_job_task(sender=None, task_id=None, task=None, args=None, kwargs=None
 def upload_logs(sender=None, task_id=None, error_msg=None, traceback=None, retval=None, **kwargs):
     try:
         task = JobTask.objects.get(task_id=task_id)
-        # TODO: is this necessary? Can the result be something else than success in this case?
         result = AsyncResult(task_id)
 
         if result.state == "FAILURE":
             # update the log with the error message and time
             error_msg = str(result.result)
             traceback = str(result.traceback)
-            task.log += f"\nERROR: {error_msg}\n"
+            task.log += f"\n [{now().isoformat()}] ERROR: {error_msg}\n"
             task.save(update_fields=["log", "updated_at"])
             error_msg = str(error_msg)
 
         elif result.state == "SUCCESS":
-            task.log += f"\n SUCCESS: {retval}"
+            task.log += f"\n [{now().isoformat()}] SUCCESS: {retval}"
             task.save(update_fields=["log", "updated_at"])
         
 
         data = {
             "job_id": task.job_id,
             "task": task.name,
+            "updated_at": str(task.updated_at),
             "error": error_msg,
             "retval": str(retval),
             "traceback": traceback,

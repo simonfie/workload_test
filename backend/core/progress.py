@@ -40,7 +40,7 @@ def get_progress(job_id):
         if task_state in ["SUCCESS", "FAILURE"]:
             completed += 1
 
-        total_tasks = task.total
+        total_tasks = task.total_tasks_in_job
 
         if task_state == "RUNNING" and isinstance(result.info, dict):
             current_step = result.info.get("step")
