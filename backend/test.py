@@ -1,6 +1,5 @@
 import os
 import django
-import redis
 import sys
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "app.settings")
@@ -62,9 +61,6 @@ chain2 = chain(standalone_task1.si(job_id), standalone_task2.si(job_id), standal
 # couldn't find an explanation yet
 complex_workflow = chord(group(chord(group1, group2),chord(group3, group(chain1))), group(group4, chain2, group5))
 # complex_workflow = chord(group(chain(group1, group2),chain(group3, chain1)), group(group4, chain2, group5))
-
-
-r = redis.Redis(decode_responses=True)
 
 
 if __name__ == "__main__":

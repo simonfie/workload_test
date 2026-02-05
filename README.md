@@ -37,3 +37,11 @@ Create and use a virtual environment in all terminals
 10. Run the testing script: `python test.py [id]`
 + To see the progress of the tasks: `python progress.py [id]`
 + Start flower monitor from /backend: `celery -A app flower`
+
+
+# Notes
+For the progress monitoring, make sure to input the same id as for the test.py script
+
+The standalone_task4 fails on purpose to test error logging
+
+monitor.py was the first attempt at progress logging and is not being used as of now
