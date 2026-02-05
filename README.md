@@ -45,3 +45,7 @@ For the progress monitoring, make sure to input the same id as for the test.py s
 The standalone_task4 fails on purpose to test error logging
 
 monitor.py was the first attempt at progress logging and is not being used as of now
+
+logger is also set to update the log row in JobTask table
+
+To update state, steps, message of a task, use update_state() as in tasks.py
