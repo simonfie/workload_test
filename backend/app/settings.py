@@ -139,3 +139,32 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {
+        "celery_task": {
+            "()": "core.task_logging.CeleryTaskFilter",
+        },
+    },
+    "handlers": {
+        "jobtask_db": {
+            "level": "INFO",
+            "class": "core.task_logging.JobTaskDBHandler",
+            "filters": ["celery_task"],
+        },
+    },
+    "loggers": {
+        "celery": {
+            "handlers": ["jobtask_db"],
+            "level": "INFO",
+        },
+        "core": {
+            "handlers": ["jobtask_db"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}

@@ -4,7 +4,7 @@ A simple celery workload testing code
 
 python 3.10
 rabbimtq-server
-redis-server
+
 
 # Usage
 

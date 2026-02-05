@@ -2,3 +2,5 @@ django
 celery
 django_celery_results
 flower
+sqlalchemy
+minio

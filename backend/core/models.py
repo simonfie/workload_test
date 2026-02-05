@@ -9,4 +9,5 @@ class JobTask(models.Model):
     current = models.IntegerField(default=0)
     total = models.IntegerField(default=1)
     updated_at = models.DateTimeField(auto_now=True)
-
+    # using textfield as the log will progressively grow
+    log = models.TextField(default="", blank=True)
