@@ -38,7 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django_celery_results',
-    "core"
+    "core",
 ]
 
 CELERY_BROKER_URL = "amqp://guest:guest@localhost:5672//"
@@ -166,5 +166,10 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "external_worker": {
+            "handlers": ["jobtask_db"],
+            "level": "INFO",
+            "propagate": False,
+    },
     },
 }

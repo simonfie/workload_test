@@ -31,10 +31,13 @@ class InGroupVisitor(StampingVisitor):
             "workflow_total": self.total_tasks
         }
 
+job_id = sys.argv[1]
 # to test different workers on different tasks
 external_signature = signature(
-        "external.tasks.final_task",
-        queue="external"
+        "template.tasks.get_template",
+        queue="template",
+        args=(job_id,),
+        immutable=True
     )
 
 # testing of different workflows
@@ -45,13 +48,12 @@ external_signature = signature(
 # workflow_group_chain = chain(group(task_a.si(), task_b.si(), task_c.si()), external_signature)
 # workflow_link = group(task_a.s())
 
-job_id = sys.argv[1]
 
 group1 = group(first_group_task1.si(job_id), first_group_task2.si(job_id), first_group_task3.si(job_id))
 group2 = group(second_group_task1.si(job_id), second_group_task2.si(job_id), second_group_task3.si(job_id))
 group3 = group(third_group_task1.si(job_id), third_group_task2.si(job_id), third_group_task3.si(job_id))
 group4 = group(fourth_group_task1.si(job_id), fourth_group_task2.si(job_id), fourth_group_task3.si(job_id))
-group5 = group(fifth_group_task1.si(job_id), fifth_group_task2.si(job_id), fifth_group_task3.si(job_id))
+group5 = group(fifth_group_task1.si(job_id), fifth_group_task2.si(job_id), external_signature)
 
 chain1 = chain(first_chain_task1.si(job_id), first_chain_task2.si(job_id), first_chain_task3.si(job_id), first_chain_task4.si(job_id))
 chain2 = chain(standalone_task1.si(job_id), standalone_task2.si(job_id), standalone_task3.si(job_id), standalone_task4.si(job_id))
