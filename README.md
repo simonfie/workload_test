@@ -34,7 +34,8 @@ Create and use a virtual environment in all terminals
 7. Start minio server and open on `localhost:9001` with minioadmin as name an password: `minio server /tmp/minio-data --console-address ":9001"`
 8. Here create a bucket called `test-bucket`
 9.  Start the main celery worker from /backend: `celery -A app worker --loglevel=INFO`
-10. Run the testing script: `python test.py [id]`
+10. Start the external worker from /backend: `celery -A external_worker.template worker --loglevel=INFO -Q template -n template`
+11. Run the testing script: `python test.py [id]`
 + To see the progress of the tasks: `python progress.py [id]`
 + Start flower monitor from /backend: `celery -A app flower`
 
